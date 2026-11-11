@@ -1,5 +1,7 @@
 # 原创虚构文字演示
 
+完整多模态体验请先停止VOC，再执行`python examples/import_full_demo.py`，下载并导入两个完整200条视图。需要已安装`app/requirements.txt`中的依赖。详情见`../public-docs/full-demo-package.md`及`full-demo-licenses.md`。以下是无需下载大文件的轻量选项。
+
 执行`python examples/seed_demo.py`后，在工作台选择“开源酒店演示 · 虚构数据”。
 
 - 3家虚构门店、36条原创文字反馈、36个预置事件、3项虚构管理行动。

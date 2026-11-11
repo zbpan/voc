@@ -43,7 +43,26 @@ Open **http://127.0.0.1:8765**, select **模型配置**, and supply your endpoin
 
 The client uses streaming Chat Completions, with a Qwen configuration as its starting point. Other providers require compatibility testing. Text connectivity does not prove structured-output, `input_audio`, or `image_url` support.
 
-For a key-free UI demo, run `python examples/seed_demo.py` from the repository root. It creates a separate, clearly labeled synthetic workspace with 36 original text samples and precomputed illustrative results. It does not call a model or include third-party media.
+## Full multimodal demo — no API key needed
+
+Stop VOC first. From the repository root, with the application dependencies installed:
+
+```bash
+python examples/import_full_demo.py
+```
+
+The importer downloads an approximately 57 MB [Release asset](https://github.com/zbpan/voc/releases/tag/demo-v1), verifies its SHA-256 and internal file hashes, and creates two isolated workspaces:
+
+- **Original hotel view:** 200 fictional feedback submissions, 58 synthetic voice recordings, 52 image-bearing submissions with 67 attachments, and 223 previously generated Qwen events.
+- **Executive view:** the same 200 submissions with curated dates, locations, segments and topics, four illustrative management actions, and an existing Qwen report with its evidence snapshot.
+
+These are two views of the same source feedback, not 400 distinct guests. The media pool retains all 30 source photos; 25 are used by the attachments. Playback, images, evidence, dashboards and the existing report work without a key or new model calls. New analysis still requires your own model configuration.
+
+Start VOC after importing and open **http://127.0.0.1:8765/?workspace=full-demo-cxo**. Existing business data is not overwritten, and collection tokens are regenerated locally. See [import details](public-docs/full-demo-package.md) and [media terms](public-docs/full-demo-licenses.md).
+
+Synthetic audio is subject to the Fish Audio output-related terms, including restrictions on using it to train other generative models. Photos retain their original licenses and attribution. They are not all Apache-2.0 materials; no model weights are included.
+
+For a smaller, text-only UI demo, run `python examples/seed_demo.py`. It creates a separate workspace with 36 original text samples and precomputed illustrative results, without model calls or third-party media.
 
 ## Configuration and data
 
@@ -71,4 +90,4 @@ npm run build
 
 Use `npm run dev` for frontend development and `python run.py` for the backend. Because of local same-origin safeguards, use the backend-served, built UI for the model configuration page.
 
-See [contributing](CONTRIBUTING.md). Original code and public examples are Apache-2.0 licensed; dependencies, models, hosted services, and user-provided content retain their own terms. No credentials, local research archives, customer databases, or unverified media bundles are included.
+See [contributing](CONTRIBUTING.md). Original code and synthetic text examples are Apache-2.0 licensed; dependencies, models, hosted services, synthetic speech, third-party images and user-provided content retain their own terms. The optional full-demo Release includes separately licensed media, but no credentials, model weights, local research archives or customer databases.

@@ -1,5 +1,12 @@
 # Changelog
 
+## Full multimodal demo
+
+- Optional Release asset with the complete 200-feedback hotel and executive views.
+- Shared audio/photo pool, original transcripts, 223 analyzed events per view, and an existing executive report.
+- SHA-256 verified download and transactional import with regenerated collection tokens.
+- Per-media licensing, provenance, attribution, and no personal credentials or local database files.
+
 ## 0.1.0 — Initial open-source release
 
 - Local voice and text feedback workspace with traceable evidence.

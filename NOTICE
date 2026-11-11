@@ -10,5 +10,6 @@ are not relicensed by this repository. Lucide icon artwork is provided under
 the ISC license; its package contains the upstream attribution and license.
 FFmpeg is a separately installed dependency with licensing determined by its build.
 
-No model weights, hosted API access, third-party photos, generated voice bundles,
-or customer-provided materials are included or licensed by this notice.
+No model weights or hosted API access are included. The optional full-demo Release
+contains synthetic audio and third-party photos under their separately documented
+terms. They are not relicensed by this notice. See public-docs/full-demo-licenses.md.
