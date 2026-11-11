@@ -1,0 +1,39 @@
+name: Tests and build
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python: ['3.11', '3.13']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+          cache: pip
+          cache-dependency-path: app/requirements*.txt
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+      - name: Install FFmpeg
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
+      - name: Install Python dependencies
+        working-directory: app
+        run: python -m pip install -r requirements-dev.txt
+      - name: Test backend
+        working-directory: app
+        run: python -m pytest tests -q
+      - name: Build frontend
+        working-directory: app
+        run: npm ci && npm run build
+      - name: Verify key-free demo initialization
+        run: python examples/seed_demo.py
+        env:
+          VOC_DATA_DIR: ${{ runner.temp }}/voc-demo

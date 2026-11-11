@@ -1,0 +1,14 @@
+VOC — Voice of Customer Workspace
+Copyright 2026 VOC contributors
+
+Original project code, documentation and synthetic text examples are distributed
+under the Apache License, Version 2.0. See LICENSE.
+
+Third-party dependencies retain their own copyright notices and licenses.
+React, Vite, FastAPI, Pydantic, httpx, qrcode and other installed dependencies
+are not relicensed by this repository. Lucide icon artwork is provided under
+the ISC license; its package contains the upstream attribution and license.
+FFmpeg is a separately installed dependency with licensing determined by its build.
+
+No model weights, hosted API access, third-party photos, generated voice bundles,
+or customer-provided materials are included or licensed by this notice.
