@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- Executive improvement agenda with evidence-specific drill-down, checkable denominators and follow-up suggestions.
+- Matching observations and representative quotations are included in the executive Markdown brief and in new report snapshots. Existing reports retain their original contents.
+
 ## Full multimodal demo
 
 - Optional Release asset with the complete 200-feedback hotel and executive views.

@@ -1,0 +1,52 @@
+.cx-agenda {
+  margin: 0 0 24px; color: #21392e; background: #fff; border: 1px solid #dce5de;
+  border-radius: 6px; font-variant-numeric: tabular-nums;
+}
+.cx-agenda > header {display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: 4px 18px; padding: 18px 22px 15px}
+.cx-agenda > header h2 {font-size: 19px; font-weight: 650}
+.cx-agenda > header span, .cx-agenda-quote figcaption {font-size: 12px; color: #52695e}
+.cx-agenda > article, .cx-agenda-empty {border-top: 1px solid #dce5de}
+.cx-agenda > article > h3 {margin: 0}
+.cx-agenda-toggle {
+  display: grid; width: 100%; grid-template-columns: 6em 1fr auto; gap: 12px; align-items: baseline;
+  padding: 15px 22px; border: 0; background: transparent; color: inherit; font: inherit; text-align: start; cursor: pointer;
+}
+.cx-agenda-toggle:hover {background: #f5f8f6}
+.cx-agenda-toggle:focus-visible, .cx-agenda-sources button:focus-visible {outline: 2px solid #287b65; outline-offset: -2px}
+.cx-agenda-label {color: #426853; font-size: 13px; font-weight: 550}
+.cx-agenda-title {font-size: 16px; line-height: 1.5; font-weight: 620; overflow-wrap: anywhere}
+.cx-agenda-toggle svg {align-self: center; color: #577160}
+.cx-agenda-toggle[aria-expanded=true] svg {transform: rotate(180deg)}
+.cx-agenda-body {padding: 0 22px 18px; overflow-wrap: anywhere}
+.cx-agenda-finding, .cx-agenda-empty {font-size: 14px; line-height: 1.65}
+.cx-agenda-finding {margin-bottom: 14px; font-weight: 550}
+.cx-agenda-empty {padding: 16px 22px; color: #52695e}
+.cx-agenda-quote {margin: 14px 0 2px; padding: 2px 0 2px 12px; border-inline-start: 2px solid #a9c1b1}
+.cx-quote-pair {display: grid; grid-template-columns: 1fr 1fr; gap: 0 26px}
+.cx-agenda-quote summary {cursor: pointer; font-size: 14px; font-weight: 550; margin-top: 3px}
+.cx-agenda-quote summary small {display: inline-block; white-space: nowrap; margin-inline-start: 8px; font-size: 12px; font-weight: 400; color: #52695e}
+.cx-agenda-quote details[open] summary small {display: none}
+.cx-agenda-quote blockquote {margin: 4px 0 0; font-size: 14px; color: #314c3d; line-height: 1.6; white-space: pre-line}
+.cx-agenda-primary {margin: 0}
+.cx-agenda-steps {display: grid; grid-template-columns: 1fr 1fr; gap: 10px 26px; margin: 13px 0 0}
+.cx-agenda-steps dt, .cx-agenda-primary dt {color: #52695e; font-size: 12px; font-weight: 600; margin: 0 0 3px}
+.cx-agenda-steps dd, .cx-agenda-primary dd {font-size: 14px; line-height: 1.65; margin: 0}
+.cx-agenda-more {margin-top: 14px; font-size: 14px}
+.cx-agenda-more summary {cursor: pointer; color: #314c3d; font-weight: 550}
+.cx-agenda-sources {display: flex; flex-wrap: wrap; gap: 4px 22px; margin-top: 11px}
+.cx-agenda-sources button {min-height: 32px; color: #246c52}
+.cx-agenda-bases {margin-top: 7px; color: #52695e; font-size: 13px}
+.cx-agenda-bases summary {cursor: pointer; width: fit-content}
+.cx-agenda-bases .cx-agenda-sources {margin-top: 2px}
+.cx-selected-event {outline: 2px solid #52836b; outline-offset: 1px}
+@media(max-width: 760px) {
+  .cx-agenda > header {padding: 16px}
+  .cx-agenda > header h2 {font-size: 18px}
+  .cx-agenda-toggle {padding: 13px 16px; grid-template-columns: minmax(0, 1fr) auto; gap: 3px 12px}
+  .cx-agenda-label {grid-column: 1; font-size: 12px}
+  .cx-agenda-title {grid-column: 1; font-size: 15px}
+  .cx-agenda-toggle svg {grid-column: 2; grid-row: 1/3}
+  .cx-agenda-body {padding: 0 16px 15px}
+  .cx-agenda-steps, .cx-quote-pair {grid-template-columns: 1fr}
+  .cx-agenda-sources button {min-height: 42px}
+}

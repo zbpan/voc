@@ -3,11 +3,8 @@ from collections import Counter, defaultdict
 from datetime import date, timedelta
 
 from .db import now
+from .improvements import NEGATIVE, SEVERITY, UNLABELED, agenda_markdown, event_topic, improvement_agenda
 from .queries import record_where
-
-
-NEGATIVE = {"negative", "mixed"}
-SEVERITY = {"critical": 0, "high": 1, "medium": 2, "low": 3}
 
 
 def percent(numerator, denominator):
@@ -25,21 +22,26 @@ def measure(rows):
 
 
 def executive_dashboard(db, scope, window_days=20):
-    base_scope = scope.model_copy(update={"start": None, "end": None})
-    where, args = record_where(base_scope)
     with db.connect() as con:
         con.execute("BEGIN")
-        records = [dict(r) for r in con.execute("SELECT r.*,s.name AS store_name FROM records r LEFT JOIN stores s ON s.id=r.store_id WHERE " + where, args)]
-        events = [dict(e) for e in con.execute("SELECT e.* FROM events e JOIN records r ON r.id=e.record_id WHERE " + where + " AND r.status='completed' AND e.review_status!='dismissed'", args)]
+        anchor = con.execute("SELECT MAX(substr(created_at,1,10)) FROM records WHERE workspace_id=?", (scope.workspace_id,)).fetchone()[0]
+        end = scope.end or date.fromisoformat(anchor or date.today().isoformat())
+        if scope.start and end < scope.start:
+            end = max(scope.start, date.today())
+        start = scope.start or end - timedelta(days=window_days - 1)
+        days = (end - start).days + 1
+        prior_end, prior_start = start - timedelta(days=1), start - timedelta(days=days)
+        where, args = record_where(scope.model_copy(update={"start": prior_start, "end": end}))
+        records = [dict(r) for r in con.execute(
+            "SELECT r.id,r.title,r.created_at,r.status,r.store_id,r.is_feedback,r.sentiment,r.metadata_json,"
+            "r.summary,r.audio_path,s.name AS store_name FROM records r LEFT JOIN stores s ON s.id=r.store_id WHERE " + where, args)]
+        filters = {key: getattr(scope, key) for key in ("theme", "severity", "sentiment", "workflow_status", "review_status") if getattr(scope, key)}
+        events = [dict(e) for e in con.execute(
+            "SELECT e.id,e.record_id,e.title,e.theme,e.quote,e.recommendation,e.severity,e.sentiment,e.review_status,e.workflow_status,e.owner "
+            "FROM events e JOIN records r ON r.id=e.record_id AND r.workspace_id=e.workspace_id WHERE "
+            + where + " AND r.status='completed' AND e.review_status!='dismissed'" + "".join(f" AND e.{key}=?" for key in filters), [*args, *filters.values()])]
         stores = [dict(s) for s in con.execute("SELECT id,name FROM stores WHERE workspace_id=? ORDER BY name", (scope.workspace_id,))]
         actions = [dict(a) for a in con.execute("SELECT a.*,s.name AS store_name FROM experience_actions a LEFT JOIN stores s ON s.id=a.store_id WHERE a.workspace_id=? ORDER BY a.due_at,a.id", (scope.workspace_id,))]
-        anchor = con.execute("SELECT MAX(substr(created_at,1,10)) FROM records WHERE workspace_id=?", (scope.workspace_id,)).fetchone()[0]
-    end = scope.end or date.fromisoformat(anchor or date.today().isoformat())
-    if scope.start and end < scope.start:
-        end = max(scope.start, date.today())
-    start = scope.start or end - timedelta(days=window_days - 1)
-    days = (end - start).days + 1
-    prior_end, prior_start = start - timedelta(days=1), start - timedelta(days=days)
     by_record = defaultdict(list)
     for event in events:
         by_record[event["record_id"]].append(event)
@@ -47,22 +49,22 @@ def executive_dashboard(db, scope, window_days=20):
         r["day"] = date.fromisoformat(r["created_at"][:10])
         r["metadata"] = json.loads(r["metadata_json"])
         r["events"] = by_record[r["id"]]
-        tags = r["metadata"].get("executive", {})
-        r["topics"] = [tags["topic"]] if tags.get("topic") and r["events"] else sorted({e["theme"] for e in r["events"]})
-        r["negative_topics"] = r["topics"] if tags.get("topic") and any(e["sentiment"] in NEGATIVE for e in r["events"]) else sorted({e["theme"] for e in r["events"] if e["sentiment"] in NEGATIVE})
-        r["segment"] = r["metadata"].get("guest_segment") or "未标注客群"
+        r["topics"] = sorted({event_topic(r, e) for e in r["events"]})
+        r["negative_topics"] = sorted({event_topic(r, e) for e in r["events"] if e["sentiment"] in NEGATIVE}) if r["is_feedback"] else []
+        r["segment"] = r["metadata"].get("guest_segment") or UNLABELED
     completed = [r for r in records if r["status"] == "completed"]
     current = [r for r in completed if start <= r["day"] <= end]
     previous = [r for r in completed if prior_start <= r["day"] <= prior_end]
     current_metrics, previous_metrics = measure(current), measure(previous)
     current_events = [e for r in current for e in r["events"]]
     high_events = [e for e in current_events if e["severity"] in {"high", "critical"} and e["workflow_status"] != "resolved"]
+    high_ids = {e["id"] for e in high_events}
     names = sorted({topic for r in current + previous for topic in r["topics"]})
     topic_rows = []
     for topic in names:
         affected = [r for r in current if topic in r["negative_topics"]]
         before = [r for r in previous if topic in r["negative_topics"]]
-        topic_high = [e for r in affected for e in r["events"] if e in high_events]
+        topic_high = [e for r in affected for e in r["events"] if e["id"] in high_ids and event_topic(r, e) == topic and e["sentiment"] in NEGATIVE]
         topic_rows.append({"name": topic, "count": len(affected), "previous_count": len(before), "rate": percent(len(affected), current_metrics["feedback"]), "previous_rate": percent(len(before), previous_metrics["feedback"]), "stores": len({r["store_id"] for r in affected}), "high_open": len(topic_high), "record_ids": [r["id"] for r in affected]})
     topic_rows.sort(key=lambda t: (-bool(t["high_open"]), -t["count"], -(t["count"] - t["previous_count"]), t["name"]))
     topic_rows = [t for t in topic_rows if t["count"]]
@@ -128,7 +130,7 @@ def executive_dashboard(db, scope, window_days=20):
     for r in current + previous:
         selected = sorted(r["events"], key=lambda e: (e["sentiment"] not in NEGATIVE, SEVERITY.get(e["severity"], 4)))
         event = selected[0] if selected else {}
-        evidence.append({"id": r["id"], "title": r["title"], "date": r["created_at"][:10], "store_id": r["store_id"], "store_name": r["store_name"] or "未分配", "sentiment": r["sentiment"], "is_feedback": bool(r["is_feedback"]), "topics": r["topics"], "negative_topics": r["negative_topics"], "segment": r["segment"], "summary": r["summary"], "quote": event.get("quote", ""), "severity": event.get("severity"), "has_audio": bool(r["audio_path"]), "period": "current" if r in current else "previous", "high_open": any(e in high_events for e in r["events"]), "event_ids": [e["id"] for e in r["events"]]})
+        evidence.append({"id": r["id"], "title": r["title"], "date": r["created_at"][:10], "store_id": r["store_id"], "store_name": r["store_name"] or "未分配", "sentiment": r["sentiment"], "is_feedback": bool(r["is_feedback"]), "topics": r["topics"], "negative_topics": r["negative_topics"], "segment": r["segment"], "summary": r["summary"], "quote": event.get("quote", ""), "severity": event.get("severity"), "has_audio": bool(r["audio_path"]), "period": "current" if r["day"] >= start else "previous", "high_open": any(e["id"] in high_ids for e in r["events"]), "event_ids": [e["id"] for e in r["events"]]})
     evidence.sort(key=lambda r: (r["date"], r["id"]), reverse=True)
     rate_delta = delta(current_metrics["negative_rate"], previous_metrics["negative_rate"])
     if rate_delta is None:
@@ -155,13 +157,18 @@ def executive_dashboard(db, scope, window_days=20):
         "period": {"start": start.isoformat(), "end": end.isoformat(), "previous_start": prior_start.isoformat(), "previous_end": prior_end.isoformat(), "days": days, "anchor": anchor},
         "headline": headline, "summary": summary, "metrics": {**current_metrics, "previous": previous_metrics, "delta_pp": rate_delta, "events": len(current_events), "pending_review": sum(e["review_status"] == "pending" for e in current_events), "high_open": len(high_events), "high_records": len({e["record_id"] for e in high_events}), "priority_coverage": percent(len(top_ids & negative_ids), len(negative_ids)), "priority_records": len(top_ids & negative_ids), "pending_records": sum(r["status"] != "completed" and start <= r["day"] <= end for r in records)},
         "trend": trend, "topics": topic_rows, "stores": store_rows, "segments": segments, "actions": action_rows, "strengths": strengths[:3], "evidence": evidence,
+        "improvements": improvement_agenda(current, previous),
         "definitions": [
             "统计按反馈提交去重，不等于住客人数；分析仅覆盖已完成记录。负向占比含负向和褒贬并存，分母为有效体验反馈。",
             "日期以UTC反馈日期统计，默认锚定工作空间最新反馈日；本期与紧邻前期天数相同。百分比变化用百分点，不用增长率。",
             "经营议题来自演示场景人工归类；无人工标签时使用模型主题。议题问题数需有未排除的负向或褒贬并存事件，同条在同议题只计一次。",
             "优先顺序为高严重度未解决信号优先，其次问题覆盖条数，再其次新增条数。前三项覆盖仅计算负向记录的去重并集。",
             "事件复核与反馈情绪是独立口径：排除事件会移出议题和风险统计，但不自动重写原反馈情绪。高严重度信号仍需复核。",
+            "事件筛选仅限制议题、风险和改善提示的事件依据；有效反馈分母仍按门店、周期、语言与搜索范围取数。",
             "行动前后按同一门店、同一议题与等长窗口比较，显示分子与分母；少于10条标记小样本，前后差异不构成因果证明。",
+            "改善提示按有效反馈去重。服务补救只看未关闭的高严重度问题；一条反馈只要有一项此类事件已确认，就归入已有确认组。未填跟进人只指系统登记状态。",
+            "重复问题需本期至少两店各有2条，或同一店连续两期各有2条。前期对照只取本期入选门店。门店互学要求同一议题在不同门店分别有至少2条明确表扬、2条问题反馈。",
+            "客群差异按议题问题数 / 该组有效反馈数计算。只比较已标注客群，双方至少各10条，该客群至少3条问题且高出10个百分点才提示。每种分析最多展示一项；筛选阈值不是显著性检验。",
             "CXO演示空间的门店、日期、客群、议题与管理行动为编排数据；原文、语音、图片和Qwen结果可溯源。未接入入住量或收入，不推算NPS、经营损失或ROI。",
         ],
     }
@@ -175,6 +182,7 @@ def executive_markdown(data, session_id):
     lines = ["# VOC 集团经营简报", f"Session ID：`{session_id}`", f"生成时间：{data['generated_at']}", f"本期：{p['start']} 至 {p['end']}；前期：{p['previous_start']} 至 {p['previous_end']}（UTC）", f"筛选：{json.dumps(data['scope'], ensure_ascii=False)}", "## 管理摘要", data["headline"], data["summary"], f"负向占比：{value(m['negative_rate'], '%')}；前期：{value(m['previous']['negative_rate'], '%')}；变化：{value(m['delta_pp'], '个百分点')}。前三项覆盖{m['priority_records']}条负向反馈；高严重度未解决{m['high_open']}个事件，涉及{m['high_records']}条反馈。", "## 门店对比"]
     for s in data["stores"]:
         lines.append(f"- {s['name']}：本期{s['negative']}/{s['feedback']}，负向占比{value(s['negative_rate'], '%')}；前期{s['previous']['negative']}/{s['previous']['feedback']}；变化{value(s['delta_pp'], '个百分点')}；首要议题{s['lead_topic'] or '暂无'}。")
+    lines.extend(agenda_markdown(data["improvements"]))
     lines.append("## 议题优先级")
     for t in data["topics"]:
         lines.append(f"- {t['name']}：{t['count']}条问题反馈，覆盖{t['stores']}家门店；前期{t['previous_count']}条；高严重度未解决{t['high_open']}个。")

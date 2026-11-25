@@ -15,6 +15,7 @@ It is a complementary insight layer, not a replacement for your CRM, ticketing, 
 - Topics, sentiment, severity, human review, ownership, and follow-up history.
 - Evidence drill-down from dashboards and reports to original text and audio chunks.
 - Period comparisons, location patterns, customer segments, and before/after observations.
+- A key-free improvement agenda in the executive view: triage unresolved high-severity feedback, compare recurring topics across locations or periods, inspect segment-specific friction, and compare praise at one location with problems at another. Each suggestion includes a management step, a frontline experiment, a verification method and links to the matching evidence.
 - Snapshot-based reports with validated evidence references and Markdown export.
 - A local model settings page for endpoint, model ID, API key, and text connectivity checks.
 
@@ -57,6 +58,10 @@ The importer downloads an approximately 57 MB [Release asset](https://github.com
 - **Executive view:** the same 200 submissions with curated dates, locations, segments and topics, four illustrative management actions, and an existing Qwen report with its evidence snapshot.
 
 These are two views of the same source feedback, not 400 distinct guests. The media pool retains all 30 source photos; 25 are used by the attachments. Playback, images, evidence, dashboards and the existing report work without a key or new model calls. New analysis still requires your own model configuration.
+
+In **经营总览 → 本期改善清单**, expand a finding to inspect individual evidence and, for rates, the underlying denominators. In the executive demo's default 20-day window, room-reliability issues appear in 21/48 submissions from the two affected locations versus 7/28 in the preceding window. Segment comparisons exclude unlabeled submissions and require at least 10 submissions per side, three affected submissions in the target segment and a 10-percentage-point gap. These are screening rules, not significance tests or employee performance scores.
+
+[See the improvement agenda with paired feedback from two locations](public-docs/images/improvement-agenda.png).
 
 Start VOC after importing and open **http://127.0.0.1:8765/?workspace=full-demo-cxo**. Existing business data is not overwritten, and collection tokens are regenerated locally. See [import details](public-docs/full-demo-package.md) and [media terms](public-docs/full-demo-licenses.md).
 

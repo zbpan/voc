@@ -21,6 +21,7 @@ from .db import Database, dumps, now, uid
 from .queries import Scope, dashboard, decode, event_rows, record_public, record_where
 from .service import REPORT_LABELS, Worker
 from .executive import executive_dashboard, executive_markdown
+from .improvements import agenda_markdown, snapshot_agenda
 from .model_settings import model_router
 
 
@@ -107,6 +108,8 @@ def report_markdown(report):
         lines += ["", "## 全量经营对照", f"本期{p['start']}至{p['end']}；前期{p['previous_start']}至{p['previous_end']}。下列指标来自全量聚合，不受前200条事件引用上限影响。", executive["headline"], executive["summary"], f"本期负向反馈{m['negative']}/{m['feedback']}；前期{m['previous']['negative']}/{m['previous']['feedback']}。"]
         for s in executive["stores"]:
             lines.append(f"- {s['name']}：本期{s['negative']}/{s['feedback']}；前期{s['previous']['negative']}/{s['previous']['feedback']}。")
+        if "improvements" in executive:
+            lines.extend(agenda_markdown(executive["improvements"]))
     lines += ["", "## 证据索引"]
     for event in snap["events"]:
         date_note = f"；反馈日期：{event['record_created_at'][:10]}" if event.get("record_created_at") else ""
@@ -354,9 +357,11 @@ def create_app(settings=None, provider=None, run_worker=True):
             raise HTTPException(422, "当前范围没有有效事件，请先导入并完成分析")
         executive = executive_dashboard(db, body.scope)
         evidence = {r["id"]: r for r in executive.pop("evidence")}
+        executive["improvements"] = snapshot_agenda(executive["improvements"])
         for event in entries["items"]:
             source = evidence.get(event["record_id"], {})
-            event["executive_topics"] = source.get("topics", [])
+            topics = source.get("topics", [])
+            event["executive_topics"] = [event["theme"]] if len(topics) > 1 else topics
             event["executive_period"] = source.get("period", "outside")
         snapshot = {"metrics": dashboard(db, body.scope), "events": entries["items"], "total_events": entries["total"], "sampled": entries["total"] > 200, "executive": executive}
         identifier = uid()
